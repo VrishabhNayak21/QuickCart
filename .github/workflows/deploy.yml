@@ -29,13 +29,13 @@ jobs:
             echo "Commit: ${{ github.sha }}"
             
             # Ensure Docker Compose V2 plugin is installed
-            if ! docker compose version > /dev/null 2>&1; then
+            if ! sudo docker compose version > /dev/null 2>&1; then
               echo "Installing Docker Compose plugin..."
               COMPOSE_VERSION="v2.24.5"
               sudo mkdir -p /usr/local/lib/docker/cli-plugins
               sudo curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" -o /usr/local/lib/docker/cli-plugins/docker-compose
               sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-              docker compose version
+              sudo docker compose version
             fi
             
             # Clone or pull
@@ -49,9 +49,9 @@ jobs:
             fi
             
             # Build and deploy
-            docker compose down --remove-orphans 2>/dev/null || true
-            docker compose up -d --build
-            docker image prune -f
+            sudo docker compose down --remove-orphans 2>/dev/null || true
+            sudo docker compose up -d --build
+            sudo docker image prune -f
             
             # Health check
             echo "Waiting for health check..."
@@ -65,5 +65,5 @@ jobs:
             done
             
             echo "Health check failed"
-            docker compose logs --tail=20
+            sudo docker compose logs --tail=20
             exit 1
