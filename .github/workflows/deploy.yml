@@ -1,0 +1,60 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -e
+            
+            APP_DIR="/home/ubuntu/Ecommerce"
+            REPO="https://github.com/${{ github.repository }}.git"
+            BRANCH="main"
+            
+            echo "=== Deploying ${{ github.repository }} ==="
+            echo "Commit: ${{ github.sha }}"
+            
+            # Clone or pull
+            if [ -d "$APP_DIR/.git" ]; then
+              cd "$APP_DIR"
+              git fetch origin
+              git reset --hard origin/$BRANCH
+            else
+              git clone -b $BRANCH $REPO "$APP_DIR"
+              cd "$APP_DIR"
+            fi
+            
+            # Build and deploy
+            docker compose down --remove-orphans 2>/dev/null || true
+            docker compose up -d --build
+            docker image prune -f
+            
+            # Health check
+            echo "Waiting for health check..."
+            for i in $(seq 1 10); do
+              if curl -sf http://localhost/api/health > /dev/null 2>&1; then
+                echo "✓ Deployment successful!"
+                exit 0
+              fi
+              echo "  Attempt $i/10 — waiting 5s..."
+              sleep 5
+            done
+            
+            echo "✗ Health check failed"
+            docker compose logs --tail=20
+            exit 1
