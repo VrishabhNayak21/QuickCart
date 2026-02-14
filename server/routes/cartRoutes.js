@@ -9,7 +9,7 @@ const calculateTotals = (cartItems) => {
     const deliveryFee = itemTotal >= 199 ? 0 : 25;
     const handlingCharge = 2;
     const total = itemTotal + deliveryFee + handlingCharge;
-
+// sjocjsjCKJK
     return {
         itemTotal, mrpTotal, discount, deliveryFee, handlingCharge, total,
         itemCount: cartItems.length,

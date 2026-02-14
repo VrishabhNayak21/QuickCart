@@ -1,3 +1,5 @@
 node_modules
 server/data/quickcart.db
 .env
+*.pem
+.env    
