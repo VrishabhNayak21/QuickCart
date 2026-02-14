@@ -17,7 +17,6 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER || 'ubuntu' }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: true
           command_timeout: 10m
           script: |
             set -e
@@ -28,6 +27,13 @@ jobs:
             
             echo "=== Deploying ${{ github.repository }} ==="
             echo "Commit: ${{ github.sha }}"
+            
+            # Ensure Docker Compose V2 plugin is installed
+            if ! docker compose version > /dev/null 2>&1; then
+              echo "Installing Docker Compose plugin..."
+              sudo apt-get update -y
+              sudo apt-get install -y docker-compose-plugin
+            fi
             
             # Clone or pull
             if [ -d "$APP_DIR/.git" ]; then
@@ -48,13 +54,13 @@ jobs:
             echo "Waiting for health check..."
             for i in $(seq 1 10); do
               if curl -sf http://localhost/api/health > /dev/null 2>&1; then
-                echo "✓ Deployment successful!"
+                echo "Deployment successful!"
                 exit 0
               fi
-              echo "  Attempt $i/10 — waiting 5s..."
+              echo "  Attempt $i/10 - waiting 5s..."
               sleep 5
             done
             
-            echo "✗ Health check failed"
+            echo "Health check failed"
             docker compose logs --tail=20
             exit 1
